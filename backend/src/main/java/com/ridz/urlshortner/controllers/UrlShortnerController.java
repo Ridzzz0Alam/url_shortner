@@ -38,7 +38,7 @@ public class UrlShortnerController {
 
     private String getClientIp(HttpServletRequest httpRequest) {
         String xForwardedFor = httpRequest.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null & !xForwardedFor.isEmpty()) {
+        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
             return xForwardedFor.split(",")[0].trim();
         }
 

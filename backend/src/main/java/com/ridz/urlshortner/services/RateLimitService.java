@@ -37,9 +37,52 @@ public class RateLimitService {
         RateLimitData data = getRateLimitDataFromRedis(redisKey);
 
         if (data == null) {
-            data = rateLimitDate.computeIfAbsent(clientIp, k -> RateLimitData.builder().build());
+            data = rateLimitDate.computeIfAbsent(clientIp, k -> RateLimitData.builder()
+                    .minuteCount(0)
+                    .hourCount(0)
+                    .minuteWindowStart(now)
+                    .hourWindowStart(now)
+                    .build());
         }
 
-        return false;
+        if (!isWithinMinuteWindow(data, now)) {
+            if (data.getMinuteCount() >= requestsPerMinute) {
+                log.warn("Minute limit exceeded for {}", clientIp);
+                return false;
+            }
+        } else {
+            data.setMinuteCount(0);
+            data.setMinuteWindowStart(now);
+        }
+
+        if (!isWithinHourWindow(data, now)) {
+            if (data.getHourCount() >= requestsPerMinute) {
+                log.warn("Minute limit exceeded for {}", clientIp);
+                return false;
+            }
+        } else {
+            data.setHourCount(0);
+            data.setHourWindowStart(now);
+        }
+
+        data.setMinuteCount(data.getMinuteCount() + 1);
+        data.setHourCount(data.getHourCount() + 1);
+
+        saveRateLimitDataToRedis(redisKey, data);
+
+        return true;
+    }
+
+    private void saveRateLimitDataToRedis(String redisKey, RateLimitData data) {
+    }
+
+    private RateLimitData getRateLimitDataFromRedis(String redisKey) {
+        try {
+            return (RateLimitData) redisTemplate.opsForValue().get(redisKey);
+
+        } catch (Exception e) {
+            log.warn("Failed to get rate limit data from Redis: {}", e.getMessage());
+            return null;
+        }
     }
 }

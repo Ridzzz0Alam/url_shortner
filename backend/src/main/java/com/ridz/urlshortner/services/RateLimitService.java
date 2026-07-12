@@ -47,7 +47,7 @@ public class RateLimitService {
                     .build());
         }
 
-        if (!isWithinMinuteWindow(data, now)) {
+        if (isWithinMinuteWindow(data, now)) {
             if (data.getMinuteCount() >= requestsPerMinute) {
                 log.warn("Minute limit exceeded for {}", clientIp);
                 return false;
@@ -57,9 +57,9 @@ public class RateLimitService {
             data.setMinuteWindowStart(now);
         }
 
-        if (!isWithinHourWindow(data, now)) {
-            if (data.getHourCount() >= requestsPerMinute) {
-                log.warn("Minute limit exceeded for {}", clientIp);
+        if (isWithinHourWindow(data, now)) {
+            if (data.getHourCount() >= requestsPerHour) {
+                log.warn("Hour limit exceeded for {}", clientIp);
                 return false;
             }
         } else {

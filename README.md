@@ -1,4 +1,4 @@
-# TinyLink
+# URL Shortener
 
 A URL shortener built for learning system design concepts using Spring Boot backend, Angular frontend, Redis caching,
 and Docker Compose for local orchestration.

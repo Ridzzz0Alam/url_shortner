@@ -8,7 +8,9 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -73,7 +75,24 @@ public class RateLimitService {
         return true;
     }
 
+    private boolean isWithinHourWindow(RateLimitData data, LocalDateTime now) {
+        return data.getHourWindowStart() != null && ChronoUnit.HOURS.between(
+                data.getHourWindowStart(), now
+        ) < 1;
+    }
+
+    private boolean isWithinMinuteWindow(RateLimitData data, LocalDateTime now) {
+        return data.getMinuteWindowStart() != null && ChronoUnit.MINUTES.between(
+                data.getMinuteWindowStart(), now
+        ) < 1;
+    }
+
     private void saveRateLimitDataToRedis(String redisKey, RateLimitData data) {
+        try {
+            redisTemplate.opsForValue().set(redisKey, data, 1, TimeUnit.HOURS);
+        } catch (Exception e) {
+            log.warn("Failed to save rate limit data to Redis: {}", e.getMessage());
+        }
     }
 
     private RateLimitData getRateLimitDataFromRedis(String redisKey) {

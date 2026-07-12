@@ -104,4 +104,20 @@ public class RateLimitService {
             return null;
         }
     }
+
+    public int getRemainingRequests(String clientIp) {
+        String redisKey = REDIS_KEY_PREFIX + clientIp;
+        RateLimitData data = getRateLimitDataFromRedis(redisKey);
+
+        if (data == null) {
+            return requestsPerMinute;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        if (!isWithinMinuteWindow(data, now)) {
+            return requestsPerMinute;
+        }
+
+        return Math.max(0, requestsPerMinute - data.getMinuteCount());
+    }
 }

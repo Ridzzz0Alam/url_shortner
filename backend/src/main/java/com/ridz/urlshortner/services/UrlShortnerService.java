@@ -1,5 +1,7 @@
 package com.ridz.urlshortner.services;
 
+import com.ridz.urlshortner.dto.ShortenUrlRequest;
+import com.ridz.urlshortner.dto.ShortenUrlResponse;
 import com.ridz.urlshortner.models.UrlData;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
@@ -7,7 +9,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -33,6 +38,45 @@ public class UrlShortnerService {
     private int cacheTtlMinutes;
 
     private static final String BASE_62_CHARS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUWXYZ";
+
+    public ShortenUrlResponse shortenUrl(ShortenUrlRequest request, String clientIp) {
+        String shortCode = request.getCustomAlias();
+
+        if (shortCode == null || shortCode.trim().isEmpty()) {
+            shortCode = generateUniqueShortCode();
+        } else {
+            shortCode = shortCode.trim();
+            if (shortCodeExists(shortCode)) {
+                throw new IllegalArgumentException("Custom alias already exists: " + shortCode);
+            }
+        }
+
+        UrlData urlData = UrlData.builder()
+                .originalUrl(request.getOriginalUrl())
+                .shortCode(shortCode)
+                .expiresAt(request.getExpiresAt())
+                .createdAt(LocalDateTime.now())
+                .createdBy(clientIp)
+                .clickCount(0)
+                .isActive(true)
+                .clickEvents(new ArrayList<>())
+                .build();
+
+        urlMappings.put(shortCode, urlData);
+        clickAnalytics.put(shortCode, new ArrayList<>());
+
+        cacheUrl(shortCode, request.getOriginalUrl());
+
+        log.info("Created short URL: {} -> {}", shortCode, request.getOriginalUrl());
+
+        return ShortenUrlResponse.builder()
+                .shortUrl(buildShortUrl(shortCode))
+                .shortCode(shortCode)
+                .originalUrl(request.getOriginalUrl())
+                .createdAt(urlData.getCreatedAt())
+                .expiresAt(urlData.getExpiresAt())
+                .build();
+    }
 
     private void cacheUrl(String shortCode, String originalUrl) {
         try {
@@ -64,6 +108,26 @@ public class UrlShortnerService {
             sb.append(BASE_62_CHARS.charAt(index));
         }
         return sb.toString();
+    }
+
+    public Optional<String> getOriginalUrl(String shortCode) {
+        String cachedUrl = getCachedUrl(shortCode);
+        if (cachedUrl != null) {
+            return Optional.of(cachedUrl);
+        }
+
+        UrlData urlData = urlMappings.get(shortCode);
+        if (urlData != null && urlData.isActive()) {
+            if (isExpired(urlData)) {
+                urlData.setActive(false);
+                return Optional.empty();
+            }
+
+            cacheUrl(shortCode, urlData.getOriginalUrl());
+            return Optional.of(urlData.getOriginalUrl());
+        }
+
+        return Optional.empty();
     }
 
     private String getCachedUrl(String shortCode) {

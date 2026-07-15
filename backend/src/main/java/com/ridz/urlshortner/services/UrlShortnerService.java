@@ -2,20 +2,25 @@ package com.ridz.urlshortner.services;
 
 import com.ridz.urlshortner.dto.ShortenUrlRequest;
 import com.ridz.urlshortner.dto.ShortenUrlResponse;
+import com.ridz.urlshortner.dto.UrlAnalyticsResponse;
+import com.ridz.urlshortner.models.ClickEvent;
 import com.ridz.urlshortner.models.UrlData;
 import lombok.RequiredArgsConstructor;
-import lombok.Value;
+
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +29,8 @@ public class UrlShortnerService {
     private final RedisTemplate<String, Object> redisTemplate;
 
     private final Map<String, UrlData> urlMappings = new ConcurrentHashMap<>();
+
+    private final Map<String, List<ClickEvent>> clickAnalytics = new ConcurrentHashMap<>();
 
     @Value("${urlshortner.base-url}")
     private String baseUrl;
@@ -37,7 +44,8 @@ public class UrlShortnerService {
     @Value("${urlshortner.cache.ttl-minutes}")
     private int cacheTtlMinutes;
 
-    private static final String BASE_62_CHARS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUWXYZ";
+    private static final String BASE_62_CHARS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
 
     public ShortenUrlResponse shortenUrl(ShortenUrlRequest request, String clientIp) {
         String shortCode = request.getCustomAlias();
@@ -78,11 +86,18 @@ public class UrlShortnerService {
                 .build();
     }
 
+    private String buildShortUrl(String shortCode) {
+        // http://localhost:8080
+        // http://localhost:8080/
+        String normalizedBaseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+        return normalizedBaseUrl + "/api/" + shortCode;
+    }
+
     private void cacheUrl(String shortCode, String originalUrl) {
         try {
             redisTemplate.opsForValue().set("url:" + shortCode, originalUrl, cacheTtlMinutes, TimeUnit.MINUTES);
         } catch (Exception e) {
-            log.warn("Failed to cache URL for {}:{}", shortCode, e.getMessage());
+            log.warn("Failed to cache URL for  {}:{}", shortCode, e.getMessage());
         }
     }
 
@@ -130,6 +145,10 @@ public class UrlShortnerService {
         return Optional.empty();
     }
 
+    private boolean isExpired(UrlData urlData) {
+        return urlData.getExpiresAt() != null && urlData.getExpiresAt().isBefore(LocalDateTime.now());
+    }
+
     private String getCachedUrl(String shortCode) {
         try {
             return (String) redisTemplate.opsForValue().get("url:" + shortCode);
@@ -139,7 +158,88 @@ public class UrlShortnerService {
         }
     }
 
-    private boolean deleteUrl(String shortCode) {
+    public void recordClick(String shortCode, String clientIp, String userAgent, String referrer) {
+        UrlData urlData = urlMappings.get(shortCode);
+        if (urlData != null && urlData.isActive()) {
+            urlData.setClickCount(urlData.getClickCount() + 1);
+
+            ClickEvent clickEvent = ClickEvent.builder()
+                    .timestamp(LocalDateTime.now())
+                    .ipAddress(clientIp)
+                    .userAgent(userAgent)
+                    .referrer(referrer)
+                    .build();
+            clickAnalytics.get(shortCode).add(clickEvent);
+            log.debug("Recorder click for short code: {}", shortCode);
+        }
+    }
+
+    public Optional<UrlStatsResponse> getUrlStats(String shortCode) {
+        UrlData urlData = urlMappings.get(shortCode);
+
+        if (urlData == null) {
+            return Optional.empty();
+        }
+
+        return Optional.of(
+                UrlStatsResponse.builder()
+                        .shortCode(shortCode)
+                        .originalUrl(urlData.getOriginalUrl())
+                        .clickCount(urlData.getClickCount())
+                        .createdAt(urlData.getCreatedAt())
+                        .expiresAt(urlData.getExpiresAt())
+                        .isActive(urlData.isActive())
+                        .createdBy(urlData.getCreatedBy())
+                        .build()
+        );
+    }
+
+    public Optional<UrlAnalyticsResponse> getUrlAnalytics(String shortCode) {
+        UrlData urlData = urlMappings.get(shortCode);
+
+        if (urlData == null) {
+            return Optional.empty();
+        }
+
+        List<ClickEvent> clicks = clickAnalytics.getOrDefault(shortCode, new ArrayList<>());
+
+        Map<String, Integer> clicksByReferrer = clicks.stream().filter(c -> c.getReferrer() != null)
+                .collect(Collectors.groupingBy(
+                        ClickEvent::getReferrer, Collectors.summingInt(e -> 1)
+                ));
+
+        Map<String, Integer> clicksByHour = clicks.stream()
+                .collect(Collectors.groupingBy(
+                        c -> c.getTimestamp().getHour() + ":00",
+                        Collectors.summingInt(e -> 1)
+                ));
+
+        Map<String, Integer> clicksByDay = clicks.stream()
+                .collect(Collectors.groupingBy(
+                        c -> c.getTimestamp().toLocalDate().toString(),
+                        Collectors.summingInt(e -> 1)
+                ));
+
+        List<ClickEvent> recentClicks = clicks.stream().sorted((a, b) -> b.getTimestamp().compareTo(a.getTimestamp()))
+                .limit(10)
+                .toList();
+
+        return Optional.of(
+                UrlAnalyticsResponse.builder()
+                        .shortCode(shortCode)
+                        .originalUrl(urlData.getOriginalUrl())
+                        .totalClicks(urlData.getClickCount())
+                        .createdAt(urlData.getCreatedAt())
+                        .expiresAt(urlData.getExpiresAt())
+                        .recentClicks(recentClicks)
+                        .clicksByReferrer(clicksByReferrer)
+                        .clicksByHour(clicksByHour)
+                        .clicksByDay(clicksByDay)
+                        .build()
+        );
+    }
+
+    public boolean deleteUrl(String shortCode) {
         UrlData urlData = urlMappings.get(shortCode);
         if (urlData != null) {
             urlData.setActive(false);
@@ -154,7 +254,27 @@ public class UrlShortnerService {
         try {
             redisTemplate.delete("url:" + shortCode);
         } catch (Exception e) {
-            log.warn("Failed to cached URL for {}:{}", shortCode, e.getMessage());
+            log.warn("Failed to delete cached URL for {}: {}", shortCode, e.getMessage());
         }
     }
+
+    public void cleanupExpiredUrls() {
+        int cleanedCount = 0;
+
+        LocalDateTime now = LocalDateTime.now();
+
+        for (Map.Entry<String, UrlData> entry : urlMappings.entrySet()) {
+            UrlData urlData = entry.getValue();
+            if (urlData.getExpiresAt() != null && urlData.getExpiresAt().isBefore(now) && urlData.isActive()) {
+                urlData.setActive(false);
+                deleteCacheUrl(entry.getKey());
+                cleanedCount++;
+            }
+        }
+
+        if (cleanedCount > 0) {
+            log.info("Cleaned up {} expired URLs", cleanedCount);
+        }
+    }
+
 }

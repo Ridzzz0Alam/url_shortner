@@ -19,10 +19,10 @@ public class RateLimitService {
 
     private final RedisTemplate<String, Object> redisTemplate;
 
-    @Value("${url_shortener.rate-limit.requests-per-minute}")
+    @Value("${urlshortener.rate-limit.requests-per-minute}")
     private int requestsPerMinute;
 
-    @Value("${url_shortener.rate-limit.requests-per-hour}")
+    @Value("${urlshortener.rate-limit.requests-per-hour}")
     private int requestsPerHour;
 
     private final ConcurrentHashMap<String, RateLimitData> rateLimitData = new ConcurrentHashMap<>();

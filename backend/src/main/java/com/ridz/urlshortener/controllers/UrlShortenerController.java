@@ -1,10 +1,10 @@
-package com.shahbytes.tinylink.controllers;
+package com.ridz.urlshortener.controllers;
 
-import com.shahbytes.tinylink.dto.ShortenUrlRequest;
-import com.shahbytes.tinylink.dto.ShortenUrlResponse;
-import com.shahbytes.tinylink.dto.UrlAnalyticsResponse;
-import com.shahbytes.tinylink.services.RateLimitService;
-import com.shahbytes.tinylink.services.UrlShortenerService;
+import com.ridz.urlshortener.dto.ShortenUrlRequest;
+import com.ridz.urlshortener.dto.ShortenUrlResponse;
+import com.ridz.urlshortener.dto.UrlAnalyticsResponse;
+import com.ridz.urlshortener.services.RateLimitService;
+import com.ridz.urlshortener.services.UrlShortenerService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -24,6 +24,7 @@ import java.util.Optional;
 public class UrlShortenerController {
     private final UrlShortenerService urlShortenerService;
     private final RateLimitService rateLimitService;
+
 
     @PostMapping("/shorten")
     public ResponseEntity<?> shortenUrl(
@@ -116,11 +117,7 @@ public class UrlShortenerController {
             return xForwardedFor.split(",")[0].trim();
         }
 
-        String xRealIp = httpRequest.getHeader("X-Real-IP");
-        if (xRealIp != null && !xRealIp.isEmpty()) {
-            return xRealIp;
-        }
-
         return httpRequest.getRemoteAddr();
     }
+
 }

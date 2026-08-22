@@ -1,6 +1,7 @@
 package com.ridz.urlshortener.services;
 
 import com.ridz.urlshortener.dto.ShortenUrlRequest;
+import com.ridz.urlshortener.controllers.UrlStatsResponse;
 import com.ridz.urlshortener.dto.ShortenUrlResponse;
 import com.ridz.urlshortener.dto.UrlAnalyticsResponse;
 import com.ridz.urlshortener.models.ClickEvent;

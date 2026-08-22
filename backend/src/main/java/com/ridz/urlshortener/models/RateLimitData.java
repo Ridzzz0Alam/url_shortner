@@ -1,4 +1,4 @@
-package com.ridz.urlshortner.models;
+package com.ridz.urlshortener.models;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

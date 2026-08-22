@@ -1,8 +1,8 @@
-package com.ridz.urlshortner.controllers;
+package com.ridz.urlshortener.controllers;
 
-import com.ridz.urlshortner.dto.ShortenUrlRequest;
-import com.ridz.urlshortner.services.RateLimitService;
-import com.ridz.urlshortner.services.UrlShortnerService;
+import com.ridz.urlshortener.dto.ShortenUrlRequest;
+import com.ridz.urlshortener.services.RateLimitService;
+import com.ridz.urlshortener.services.UrlShortnerService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

@@ -1,6 +1,6 @@
-package com.ridz.urlshortner.dto;
+package com.ridz.urlshortener.dto;
 
-import com.ridz.urlshortner.models.ClickEvent;
+import com.ridz.urlshortener.models.ClickEvent;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

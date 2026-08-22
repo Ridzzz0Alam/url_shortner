@@ -1,4 +1,4 @@
-package com.ridz.urlshortner.dto;
+package com.ridz.urlshortener.controllers;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,11 +11,13 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ShortenUrlResponse {
-    private String shortUrl;
+public class UrlStatsResponse {
     private String shortCode;
     private String originalUrl;
+    private int clickCount;
     private LocalDateTime createdAt;
     private LocalDateTime expiresAt;
+    private boolean isActive;
+    private String createdBy;
 
 }

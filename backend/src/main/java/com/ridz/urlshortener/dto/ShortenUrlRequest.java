@@ -1,4 +1,4 @@
-package com.ridz.urlshortner.dto;
+package com.ridz.urlshortener.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;

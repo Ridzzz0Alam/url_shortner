@@ -1,10 +1,10 @@
-package com.ridz.urlshortner.services;
+package com.ridz.urlshortener.services;
 
-import com.ridz.urlshortner.dto.ShortenUrlRequest;
-import com.ridz.urlshortner.dto.ShortenUrlResponse;
-import com.ridz.urlshortner.dto.UrlAnalyticsResponse;
-import com.ridz.urlshortner.models.ClickEvent;
-import com.ridz.urlshortner.models.UrlData;
+import com.ridz.urlshortener.dto.ShortenUrlRequest;
+import com.ridz.urlshortener.dto.ShortenUrlResponse;
+import com.ridz.urlshortener.dto.UrlAnalyticsResponse;
+import com.ridz.urlshortener.models.ClickEvent;
+import com.ridz.urlshortener.models.UrlData;
 import lombok.RequiredArgsConstructor;
 
 import lombok.extern.slf4j.Slf4j;

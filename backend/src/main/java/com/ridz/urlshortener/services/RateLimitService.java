@@ -1,6 +1,6 @@
-package com.ridz.urlshortner.services;
+package com.ridz.urlshortener.services;
 
-import com.ridz.urlshortner.models.RateLimitData;
+import com.ridz.urlshortener.models.RateLimitData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,7 +25,7 @@ public class RateLimitService {
     @Value("${url_shortner.rate-limit.requests-per-hour}")
     private int requestsPerHour;
 
-    private final ConcurrentHashMap<String, RateLimitData> rateLimitDate = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, RateLimitData> rateLimitData = new ConcurrentHashMap<>();
 
     private static final String REDIS_KEY_PREFIX = "rateLimit:";
 
@@ -39,7 +39,7 @@ public class RateLimitService {
         RateLimitData data = getRateLimitDataFromRedis(redisKey);
 
         if (data == null) {
-            data = rateLimitDate.computeIfAbsent(clientIp, k -> RateLimitData.builder()
+            data = rateLimitData.computeIfAbsent(clientIp, k -> RateLimitData.builder()
                     .minuteCount(0)
                     .hourCount(0)
                     .minuteWindowStart(now)
@@ -120,4 +120,28 @@ public class RateLimitService {
 
         return Math.max(0, requestsPerMinute - data.getMinuteCount());
     }
+
+    public long getTimeUntilReset(String clientIp) {
+        String redisKey = REDIS_KEY_PREFIX + clientIp;
+        RateLimitData data = getRateLimitDataFromRedis(redisKey);
+
+        if (data == null) {
+            return 0;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        if (data.getMinuteCount() >= requestsPerMinute) {
+            LocalDateTime nextMinute = data.getMinuteWindowStart().plusMinutes(1);
+            return ChronoUnit.SECONDS.between(now, nextMinute);
+        }
+
+        if (data.getHourCount() >= requestsPerHour) {
+            LocalDateTime nextHour = data.getHourWindowStart().plusHours(1);
+
+            return ChronoUnit.SECONDS.between(now, nextHour);
+        }
+
+        return 0;
+    }
+
 }

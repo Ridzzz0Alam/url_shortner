@@ -38,6 +38,9 @@ public class UrlShortnerController {
                             "timeUntilReset", rateLimitService.getTimeUntilReset(clientIp)
                     ));
         }
+        try{
+            ShortenUrlResponse response = urlShortnerService
+        }
     }
 
     private String getClientIp(HttpServletRequest httpRequest) {

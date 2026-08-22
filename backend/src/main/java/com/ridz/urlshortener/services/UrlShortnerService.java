@@ -25,23 +25,23 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class UrlShortnerService {
+public class UrlShortenerService {
     private final RedisTemplate<String, Object> redisTemplate;
 
     private final Map<String, UrlData> urlMappings = new ConcurrentHashMap<>();
 
     private final Map<String, List<ClickEvent>> clickAnalytics = new ConcurrentHashMap<>();
 
-    @Value("${urlshortner.base-url}")
+    @Value("${urlshortener.base-url}")
     private String baseUrl;
 
-    @Value("${urlshortner.short-code.length}")
+    @Value("${urlshortener.short-code.length}")
     private int shortCodeLength;
 
-    @Value("${urlshortner.short-code.max-attempts}")
+    @Value("${urlshortener.short-code.max-attempts}")
     private int maxGenerationAttempts;
 
-    @Value("${urlshortner.cache.ttl-minutes}")
+    @Value("${urlshortener.cache.ttl-minutes}")
     private int cacheTtlMinutes;
 
     private static final String BASE_62_CHARS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";

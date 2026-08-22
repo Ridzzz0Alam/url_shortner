@@ -1,6 +1,6 @@
 spring:
   application:
-    name: urlshortner
+    name: urlshortener
   data:
     redis:
       host: localhost
@@ -13,7 +13,7 @@ spring:
           min-idle: 0
 server:
   port: 8080
-urlshortner:
+urlshortener:
   base-url: http://localhost:8080
   short-code:
     length: 6
@@ -28,7 +28,7 @@ urlshortner:
     expired-urls-batch-size: 100
 logging:
   level:
-    com.ridz.urlshortner: DEBUG
+    com.ridz.urlshortener: DEBUG
     org.springframework.data.redis: DEBUG
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"

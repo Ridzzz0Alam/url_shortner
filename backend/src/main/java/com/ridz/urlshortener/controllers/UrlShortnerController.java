@@ -32,7 +32,11 @@ public class UrlShortnerController {
         String clientIp = getClientIp(httpRequest);
         if (!rateLimitService.isAllowed(clientIp)) {
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                    .body(Map.of());
+                    .body(Map.of(
+                            "error", "Rate limit exceeded",
+                            "remainingRequests", rateLimitService.getRemainingRequests(clientIp),
+                            "timeUntilReset", rateLimitService.getTimeUntilReset(clientIp)
+                    ));
         }
     }
 

@@ -131,13 +131,14 @@ public class RateLimitService {
 
         LocalDateTime now = LocalDateTime.now();
         if (data.getMinuteCount() >= requestsPerMinute) {
-            LocalDateTime nextMinute = data.getMinuteWindowStart().plusMinutes(1);
+            LocalDateTime nextMinute = data.getMinuteWindowStart()
+                    .plusMinutes(1);
             return ChronoUnit.SECONDS.between(now, nextMinute);
         }
 
         if (data.getHourCount() >= requestsPerHour) {
-            LocalDateTime nextHour = data.getHourWindowStart().plusHours(1);
-
+            LocalDateTime nextHour = data.getHourWindowStart()
+                    .plusHours(1);
             return ChronoUnit.SECONDS.between(now, nextHour);
         }
 

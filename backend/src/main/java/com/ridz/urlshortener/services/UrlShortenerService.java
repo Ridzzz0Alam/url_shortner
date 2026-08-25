@@ -127,23 +127,25 @@ public class UrlShortenerService {
     }
 
     public Optional<String> getOriginalUrl(String shortCode) {
+        UrlData urlData = urlMappings.get(shortCode);
+
+        if (urlData == null || !urlData.isActive()) {
+            return Optional.empty();
+        }
+
+        if (isExpired(urlData)) {
+            urlData.setActive(false);
+            deleteCacheUrl(shortCode);
+            return Optional.empty();
+        }
+
         String cachedUrl = getCachedUrl(shortCode);
         if (cachedUrl != null) {
             return Optional.of(cachedUrl);
         }
 
-        UrlData urlData = urlMappings.get(shortCode);
-        if (urlData != null && urlData.isActive()) {
-            if (isExpired(urlData)) {
-                urlData.setActive(false);
-                return Optional.empty();
-            }
-
-            cacheUrl(shortCode, urlData.getOriginalUrl());
-            return Optional.of(urlData.getOriginalUrl());
-        }
-
-        return Optional.empty();
+        cacheUrl(shortCode, urlData.getOriginalUrl());
+        return Optional.of(urlData.getOriginalUrl());
     }
 
     private boolean isExpired(UrlData urlData) {
